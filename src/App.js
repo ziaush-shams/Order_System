@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ShoppingBag, ChevronDown, ChevronUp, Upload, AlertCircle } from 'lucide-react';
+import { Check, ShoppingBag, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import emailjs from '@emailjs/browser';
 
