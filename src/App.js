@@ -163,7 +163,7 @@ const OrderSystem = () => {
       formDataToSend.append('_subject', `New Order from ${formData.name}`);
       formDataToSend.append('_captcha', 'false');
 
-      const response = await fetch('https://formsubmit.co/thinkporag@gmail.com', {
+      const response = await fetch('https://formsubmit.co/bazaarnb2020@gmail.com', {
         method: 'POST',
         body: formDataToSend,
       });
