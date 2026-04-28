@@ -65,6 +65,34 @@ const OrderSystem = () => {
   const handleSubmitDetails = async (e) => {
     e.preventDefault();
     setLoading(true);
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3-r8XwoT_Ih-TC-sb5AnH9s0gjIwEiey8fEJQPjYuKD4o2eBj2xNZRW_FFRfYYjWpRA/exec";
+
+    try {
+      // Send data to Google Sheets
+      const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Important for Google Apps Script
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          address: formData.address,
+          cartItems: cartItemsWithDetails
+        }),
+      });
+
+      // Since 'no-cors' doesn't return a standard response status, 
+      // we assume success if no error is thrown
+      setStage('complete');
+      setCart([]); // Clear cart after success
+      
+    } catch (err) {
+      setEmailError("Failed to save order to the cloud.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+
     try {
       const itemsSummary = cartItemsWithDetails
         .map(item => `${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`)
