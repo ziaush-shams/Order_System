@@ -32,7 +32,7 @@ const OrderSystem = () => {
 
       setCategories([...new Set(menuItems.map(item => item.category))]);
       setItems(menuItems);
-      if (menuItems.length > 0) setExpandedCategories({ [menuItems[0].category]: true });
+      if (menuItems.length > 0) setExpandedCategories({ [menuItems[0].category]: false });
     } catch (e) {
       console.error("Default menu not found.");
     }
