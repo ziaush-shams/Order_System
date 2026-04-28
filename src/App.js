@@ -78,7 +78,8 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3-r8XwoT_Ih-TC-sb5
           phone: formData.phone,
           address: formData.address,
           cartItems: cartItemsWithDetails
-        }),
+        }
+      const data = await response.json()),
       });
 
       // Since 'no-cors' doesn't return a standard response status, 
