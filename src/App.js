@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ShoppingBag, ChevronDown, ChevronUp, Trash2, Plus, Minus } from 'lucide-react';
+// Removed 'Check' from imports if not used, or ensured it's used in the Success stage
+import { ShoppingBag, ChevronDown, ChevronUp, Trash2, Plus, Minus, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const OrderSystem = () => {
@@ -28,8 +29,7 @@ const OrderSystem = () => {
         category: row.Category || row.category || 'General',
         name: row['Item Name'] || row.Item || 'Unknown Item',
         price: parseFloat(row.Price || 0),
-        // Added support for a sale price column from Excel
-        salePrice: row['Sale Price'] || row.sale_price ? parseFloat(row['Sale Price'] || row.sale_price) : null
+        salePrice: row['Sale Price'] ? parseFloat(row['Sale Price']) : null
       }));
 
       setCategories([...new Set(menuItems.map(item => item.category))]);
@@ -61,23 +61,26 @@ const OrderSystem = () => {
     return { ...detail, quantity: cItem.quantity };
   });
 
-  // Calculate total using sale price if available
   const totalPrice = cartItemsWithDetails.reduce((sum, item) => {
-    const finalPrice = item.salePrice && item.category === 'Specials' ? item.salePrice : item.price;
+    const finalPrice = (item.category === 'Specials' && item.salePrice) ? item.salePrice : item.price;
     return sum + (finalPrice * item.quantity);
   }, 0);
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  // FIX: handleSubmitDetails is now properly called in the form
   const handleSubmitDetails = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setEmailError('');
+    
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3-r8XwoT_Ih-TC-sb5AnH9s0gjIwEiey8fEJQPjYuKD4o2eBj2xNZRW_FFRfYYjWpRA/exec";
 
     try {
+      // FIX: itemsSummary is now used in the payload
       const itemsSummary = cartItemsWithDetails
         .map(item => {
-           const p = item.salePrice && item.category === 'Specials' ? item.salePrice : item.price;
+           const p = (item.category === 'Specials' && item.salePrice) ? item.salePrice : item.price;
            return `${item.name} (x${item.quantity}) - $${(p * item.quantity).toFixed(2)}`;
         })
         .join('\n');
@@ -90,16 +93,18 @@ const OrderSystem = () => {
           name: formData.name,
           phone: formData.phone,
           address: formData.address,
+          summary: itemsSummary, // Variable is now used here
           cartItems: cartItemsWithDetails.map(i => ({
-            ...i,
-            price: i.salePrice && i.category === 'Specials' ? i.salePrice : i.price
+            name: i.name,
+            quantity: i.quantity,
+            price: (i.category === 'Specials' && i.salePrice) ? i.salePrice : i.price
           }))
         }),
       });
 
       setStage('complete');
     } catch (err) {
-      setEmailError("Error sending order.");
+      setEmailError("Error sending order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -108,15 +113,14 @@ const OrderSystem = () => {
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fe', fontFamily: 'sans-serif' }}>
       
-      {/* STICKY HEADER */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 1000, background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', padding: '20px 25px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 1000, background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', padding: '20px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <ShoppingBag size={32} />
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>Bazaar Order</h1>
+          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Bazaar Order</h1>
         </div>
 
         {stage === 'selection' && (
-          <button onClick={() => setStage('confirmation')} disabled={cart.length === 0} style={{ background: '#ffcc00', color: '#333', border: 'none', padding: '12px 24px', borderRadius: '30px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', opacity: cart.length === 0 ? 0.6 : 1 }}>
+          <button onClick={() => setStage('confirmation')} disabled={cart.length === 0} style={{ background: '#ffcc00', color: '#333', border: 'none', padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', opacity: cart.length === 0 ? 0.6 : 1 }}>
             <ShoppingBag size={24} />
             <span>REVIEW ORDER & CHECKOUT ({totalItems})</span>
             <span style={{ background: 'rgba(0,0,0,0.1)', padding: '4px 10px', borderRadius: '15px' }}>${totalPrice.toFixed(2)}</span>
@@ -125,53 +129,39 @@ const OrderSystem = () => {
       </div>
 
       <div style={{ maxWidth: '900px', margin: '20px auto', padding: '0 15px' }}>
-        <div style={{ background: 'white', borderRadius: '15px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', padding: '30px' }}>
+        <div style={{ background: 'white', borderRadius: '15px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
           
           {stage === 'selection' && (
             <div>
               {categories.map(cat => (
                 <div key={cat} style={{ marginBottom: '20px' }}>
                   <div onClick={() => setExpandedCategories(p => ({ ...p, [cat]: !p[cat] }))} style={{ background: cat === 'Specials' ? '#fff5f5' : '#f8f9fa', padding: '18px', borderRadius: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', border: cat === 'Specials' ? '1px solid #feb2b2' : '1px solid #eee' }}>
-                    <span style={{ color: cat === 'Specials' ? '#e53e3e' : 'inherit' }}>
-                        {cat === 'Specials' ? '🔥 ' + cat : cat}
-                    </span>
+                    <span style={{ color: cat === 'Specials' ? '#e53e3e' : 'inherit' }}>{cat === 'Specials' ? '🔥 ' + cat : cat}</span>
                     {expandedCategories[cat] ? <ChevronUp /> : <ChevronDown />}
                   </div>
-
                   {expandedCategories[cat] && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '15px' }}>
                       {items.filter(i => i.category === cat).map(item => {
                         const inCart = cart.find(c => c.id === item.id);
                         const isSpecial = cat === 'Specials' && item.salePrice;
-
                         return (
                           <div key={item.id} style={{ padding: '20px', border: '1px solid #eee', borderRadius: '12px', background: inCart ? '#f0f7ff' : 'white' }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>{item.name}</div>
-                            
-                            <div style={{ marginBottom: '15px' }}>
+                            <div style={{ fontWeight: 'bold' }}>{item.name}</div>
+                            <div style={{ margin: '10px 0' }}>
                               {isSpecial ? (
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                  <span style={{ color: '#e53e3e', textDecoration: 'line-through', fontSize: '0.9rem' }}>
-                                    ${item.price.toFixed(2)}
-                                  </span>
-                                  <span style={{ color: '#38a169', fontWeight: 'bold', fontSize: '1.2rem' }}>
-                                    ${item.salePrice.toFixed(2)}
-                                  </span>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                  <span style={{ color: '#e53e3e', textDecoration: 'line-through' }}>${item.price.toFixed(2)}</span>
+                                  <span style={{ color: '#38a169', fontWeight: 'bold' }}>${item.salePrice.toFixed(2)}</span>
                                 </div>
-                              ) : (
-                                <span style={{ color: '#667eea', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                                  ${item.price.toFixed(2)}
-                                </span>
-                              )}
+                              ) : <span style={{ color: '#667eea', fontWeight: 'bold' }}>${item.price.toFixed(2)}</span>}
                             </div>
-
                             {!inCart ? (
-                              <button onClick={() => addToCart(item.id)} style={{ width: '100%', padding: '10px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Add to Cart</button>
+                              <button onClick={() => addToCart(item.id)} style={{ width: '100%', padding: '10px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Add to Cart</button>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8f9fa', padding: '5px', borderRadius: '8px', border: '1px solid #667eea' }}>
-                                <button onClick={() => updateQuantity(item.id, -1)} style={{ border: 'none', background: '#e2e8f0', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}><Minus size={16}/></button>
-                                <span style={{ fontWeight: 'bold', color: '#667eea' }}>{inCart.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, 1)} style={{ border: 'none', background: '#e2e8f0', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}><Plus size={16}/></button>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <button onClick={() => updateQuantity(item.id, -1)} style={{ border: 'none', background: '#e2e8f0', padding: '8px', borderRadius: '6px' }}><Minus size={16}/></button>
+                                <span>{inCart.quantity}</span>
+                                <button onClick={() => updateQuantity(item.id, 1)} style={{ border: 'none', background: '#e2e8f0', padding: '8px', borderRadius: '6px' }}><Plus size={16}/></button>
                               </div>
                             )}
                           </div>
@@ -184,35 +174,50 @@ const OrderSystem = () => {
             </div>
           )}
 
-          {/* Logic for Stage 2, 3, 4 remains the same as previous updated versions... */}
           {stage === 'confirmation' && (
-             /* Ensure confirmation view also shows the Sale Price if it's a Special */
-             <div>
-                <h2 style={{ marginTop: 0 }}>Review Your Order</h2>
-                {cartItemsWithDetails.map(item => {
-                    const finalP = (item.category === 'Specials' && item.salePrice) ? item.salePrice : item.price;
-                    return (
-                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #f4f7fe' }}>
-                            <div>
-                                <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                                <div style={{ color: '#666' }}>{item.quantity} x ${finalP.toFixed(2)}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                <span style={{ fontWeight: 'bold' }}>${(finalP * item.quantity).toFixed(2)}</span>
-                                <button onClick={() => removeFromCart(item.id)} style={{ border: 'none', background: '#fff0f0', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}><Trash2 size={20} color="#ff4d4d" /></button>
-                            </div>
-                        </div>
-                    );
-                })}
-                <div style={{ textAlign: 'right', padding: '30px 0', fontSize: '1.8rem', fontWeight: 'bold', color: '#764ba2' }}>Total: ${totalPrice.toFixed(2)}</div>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <button onClick={() => setStage('selection')} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid #ddd', background: 'white', fontWeight: '600' }}>Add More</button>
-                    <button onClick={() => setStage('details')} style={{ flex: 1, padding: '16px', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>Checkout</button>
-                </div>
-             </div>
+            <div>
+              <h2>Review Your Order</h2>
+              {cartItemsWithDetails.map(item => {
+                const p = (item.category === 'Specials' && item.salePrice) ? item.salePrice : item.price;
+                return (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee' }}>
+                    <div>{item.name} (x{item.quantity})</div>
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                      <span>${(p * item.quantity).toFixed(2)}</span>
+                      <Trash2 size={20} color="#ff4d4d" onClick={() => removeFromCart(item.id)} style={{ cursor: 'pointer' }} />
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ textAlign: 'right', padding: '20px 0', fontSize: '1.5rem', fontWeight: 'bold' }}>Total: ${totalPrice.toFixed(2)}</div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setStage('selection')} style={{ flex: 1, padding: '15px', borderRadius: '10px' }}>Add More</button>
+                <button onClick={() => setStage('details')} style={{ flex: 1, padding: '15px', background: '#667eea', color: 'white', border: 'none', borderRadius: '10px' }}>Checkout</button>
+              </div>
+            </div>
           )}
 
-          {/* ...Details and Complete stages (same as before) */}
+          {stage === 'details' && (
+            <form onSubmit={handleSubmitDetails}>
+              <h2>Delivery Details</h2>
+              {emailError && <div style={{ color: 'red' }}>{emailError}</div>}
+              <input type="text" placeholder="Name" required style={{ width: '100%', padding: '12px', marginBottom: '10px' }} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="tel" placeholder="Phone" required style={{ width: '100%', padding: '12px', marginBottom: '10px' }} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              <textarea placeholder="Address" required style={{ width: '100%', padding: '12px', marginBottom: '20px' }} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+              <button type="submit" disabled={loading} style={{ width: '100%', padding: '15px', background: '#764ba2', color: 'white', border: 'none', borderRadius: '10px' }}>
+                {loading ? "Processing..." : "Place Order"}
+              </button>
+            </form>
+          )}
+
+          {stage === 'complete' && (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <Check size={48} color="#38a169" style={{ margin: '0 auto 20px' }} />
+              <h2>Success!</h2>
+              <p>Thank you for your order, {formData.name}.</p>
+              <button onClick={() => { setStage('selection'); setCart([]); }} style={{ marginTop: '20px', padding: '12px 30px', background: '#667eea', color: 'white', border: 'none', borderRadius: '30px' }}>Start Over</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
