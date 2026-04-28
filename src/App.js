@@ -69,7 +69,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3-r8XwoT_Ih-TC-sb5
 
     try {
       // Send data to Google Sheets
-      const response = await fetch(SCRIPT_URL, {
+      await fetch(SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors', // Important for Google Apps Script
         headers: { 'Content-Type': 'application/json' },
