@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ShoppingBag, ChevronDown, ChevronUp, Upload, Trash2, Plus, Minus, AlertCircle } from 'lucide-react';
+import { Check, ShoppingBag, ChevronDown, ChevronUp, Trash2, Plus, Minus } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const OrderSystem = () => {
