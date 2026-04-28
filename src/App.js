@@ -22,7 +22,7 @@ const OrderSystem = () => {
       const blob = await response.arrayBuffer();
       const workbook = XLSX.read(blob, { type: 'array' });
       const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-      
+      inspect response.ok;
       const menuItems = jsonData.map((row, idx) => ({
         id: idx + 1,
         category: row.Category || row.category || 'General',
